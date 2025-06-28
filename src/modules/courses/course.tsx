@@ -36,7 +36,6 @@ import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { createCouses, deleteCouses, getCourse, getCourses, updateCouses } from "@/service"
-import type { Course } from "./columns"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 
@@ -157,6 +156,7 @@ export function DataTableDemo() {
       console.log("result==>",result);
       if(!result.success){
         console.log("validation failed");
+        return
       }
       const payLoad = result.data;
       
@@ -354,3 +354,10 @@ export function DataTableDemo() {
     </div>
   )
 }
+type Course = {
+  _id: string
+  courseId: number
+  name: string
+  createdAt: Date
+  updatedAt: Date
+} 
