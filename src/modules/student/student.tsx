@@ -45,8 +45,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export function StudentTable() {
 
@@ -67,7 +66,8 @@ export function StudentTable() {
     fullname: z.string(),
     dateofbirth: z.date(),
     enrollmentCourse: z.string(),
-    description: z.string().optional(),
+    picture: z.any(),
+    description: z.string().optional()
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -89,6 +89,7 @@ export function StudentTable() {
   const getStudentsList = () => {
     getStudents().then((data) => {
       const students = data.data;
+      console.log("students",students);
       setStudentData(students);
     });
   }
@@ -100,14 +101,31 @@ export function StudentTable() {
       setCourseData(courses);
     });
   }
-
+  
 
   const columns: ColumnDef<Student>[] = [
+    {
+     id: "picture",
+     enableHiding : true,
+      cell: ({ row }) => {
+        const imageBase64 = row.original.picture;
+        return  <>
+        <div className="flex justify-center">
+            <Avatar className="">
+            <AvatarImage src={`${imageBase64}`}/>
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
+        </div>
+        </>
+      }
+    },
     {
       accessorKey: "enrollmentNumber",
       header: "Enrollment Number",
       cell: ({ row }) => (
-        <div className="capitalize ">{row.getValue("enrollmentNumber")}</div>
+        <>
+          <div className="capitalize ">{row.getValue("enrollmentNumber")}</div>
+        </>
       ),
     },
     {
@@ -209,17 +227,30 @@ export function StudentTable() {
     },
   })
 
+  const handleImageChange = (event : any) => {
+    const file = event.target.files?.[0]
+    if(file){
+      const reader = new FileReader()
+      reader.readAsDataURL(file);
+      reader.onloadend = () => {
+        form.setValue('picture', reader.result as string);
+      }
+    }
+  }
+
 
   const onSubmit = async () => {
     setIsLoading(true); // Set loading state to true
-    try { 
-      const model = { ...form.getValues() };    
+    try {
+      const model = { ...form.getValues() }    
+      console.log("model",model);
       model["dateofbirth"] = new Date(model.dateofbirth) 
-      const result = formSchema.safeParse({ ...model }); 
+      const result = formSchema.safeParse({ ...model })
       if (!result.success) {
         console.log("validation failed");
         return
       }
+      
       const payLoad = result.data; 
       if (payLoad?._id) {
         updateStudent(payLoad._id, payLoad).then((data) => {
@@ -246,9 +277,8 @@ export function StudentTable() {
     form.setValue('enrollmentNumber', enrollmentNumber);
     form.setValue('fullname', fullname);
     form.setValue('_id', _id);
-    form.setValue('dateofbirth', dateofbirth); 
+    form.setValue('dateofbirth', dateofbirth);
     form.setValue('enrollmentCourse', enrollmentCourse?._id);
-
   }
 
   const onDelete = async (raw: Student) => {
@@ -268,7 +298,6 @@ export function StudentTable() {
 
 
   return (
-
     <div className="w-full">
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <div className="flex justify-end mb-2">
@@ -331,6 +360,25 @@ export function StudentTable() {
                   )}
                 />
 
+              <FormField
+                  control={form.control}
+                  name="picture"
+                  render={({ field : { value, onChange, ...fieldProps }}) => (
+                    <FormItem>
+                      <FormLabel>Picture</FormLabel>
+                      <FormControl>
+                        <Input
+                         {...fieldProps}
+                         type="file" 
+                         accept="image/*"
+                         onChange={handleImageChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
 
                 <FormField
                   control={form.control}
@@ -338,7 +386,7 @@ export function StudentTable() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>DOB</FormLabel>
-                      <Popover >
+                      <Popover>
                         <PopoverTrigger asChild className="w-full">
                           <FormControl>
                             <Button
@@ -494,7 +542,8 @@ export type Student = {
   enrollmentNumber: number
   fullname: string
   dateofbirth: Date
-  enrollmentCourse: string
+  enrollmentCourse: string  
+  picture: string
   description: string
   status?: string
   createdAt: Date
